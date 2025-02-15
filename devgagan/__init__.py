@@ -16,7 +16,7 @@ import asyncio
 import logging
 from pyrogram import Client
 from pyrogram.enums import ParseMode 
-from config import API_ID, API_HASH, BOT_TOKEN, STRING, MONGO_DB, DEFAULT_SESSION
+from config import API_ID, API_HASH, BOT_TOKEN, STRING, MONGO_DB
 from telethon.sync import TelegramClient
 from motor.motor_asyncio import AsyncIOMotorClient
 import time
@@ -31,7 +31,7 @@ logging.basicConfig(
 botStartTime = time.time()
 
 app = Client(
-    "pyrobot",
+    ":RestrictBot:",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
@@ -43,7 +43,6 @@ pro = Client("ggbot", api_id=API_ID, api_hash=API_HASH, session_string=STRING)
 
 sex = TelegramClient('sexrepo', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
-userrbot = Client("userrbot", api_id=API_ID, api_hash=API_HASH, session_string=DEFAULT_SESSION)
 
 # MongoDB setup
 tclient = AsyncIOMotorClient(MONGO_DB)
@@ -74,7 +73,5 @@ async def restrict_bot():
         BOT_NAME = getme.first_name
     if STRING:
         await pro.start()
-    if DEFAULT_SESSION:
-        await userrbot.start()
 
 loop.run_until_complete(restrict_bot())
