@@ -18,8 +18,8 @@ import random
 import string
 import asyncio
 from pyrogram import filters, Client
-from devgagan import app, userrbot
-from config import API_ID, API_HASH, FREEMIUM_LIMIT, PREMIUM_LIMIT, OWNER_ID, DEFAULT_SESSION
+from devgagan import app
+from config import API_ID, API_HASH, FREEMIUM_LIMIT, PREMIUM_LIMIT, OWNER_ID
 from devgagan.core.get_func import get_msg
 from devgagan.core.func import *
 from devgagan.core.mongo import db
@@ -56,7 +56,7 @@ async def check_interval(user_id, freecheck):
         cooldown_end = interval_set[user_id]
         if now < cooldown_end:
             remaining_time = (cooldown_end - now).seconds
-            return False, f"Please wait {remaining_time} seconds(s) before sending another link. Alternatively, purchase premium for instant access.\n\n> Hey 👋 You can use /token to use the bot free for 3 hours without any time limit."
+            return False, f"Please wait {remaining_time} seconds(s) before sending another link. Alternatively, purchase premium for instant access.\n\n> Hey 👋 You can suck owners dick to use the bot free for 3 hours without any time limit."
         else:
             del interval_set[user_id]  # Cooldown expired, remove user from interval set
 
@@ -88,7 +88,7 @@ async def single_link(_, message):
 
     # Check freemium limits
     if await chk_user(message, user_id) == 1 and FREEMIUM_LIMIT == 0 and user_id not in OWNER_ID and not await is_user_verified(user_id):
-        await message.reply("Freemium service is currently not available. Upgrade to premium for access.")
+        await message.reply("Free service is currently not available. Upgrade to premium for access.")
         return
 
     # Check cooldown
@@ -103,11 +103,14 @@ async def single_link(_, message):
     link = message.text if "tg://openmessage" in message.text else get_link(message.text)
     msg = await message.reply("Processing...")
     userbot = await initialize_userbot(user_id)
+
     try:
         if await is_normal_tg_link(link):
+            # Pass userbot if available; handle normal Telegram links
             await process_and_upload_link(userbot, user_id, msg.id, link, 0, message)
             await set_interval(user_id, interval_minutes=45)
         else:
+            # Handle special Telegram links
             await process_special_links(userbot, user_id, msg, link)
             
     except FloodWait as fw:
@@ -116,6 +119,8 @@ async def single_link(_, message):
         await msg.edit_text(f"Link: `{link}`\n\n**Error:** {str(e)}")
     finally:
         users_loop[user_id] = False
+        if userbot:
+            await userbot.stop()
         try:
             await msg.delete()
         except Exception:
@@ -123,6 +128,7 @@ async def single_link(_, message):
 
 
 async def initialize_userbot(user_id): # this ensure the single startup .. even if logged in or not
+    """Initialize the userbot session for the given user."""
     data = await db.get_data(user_id)
     if data and data.get("session"):
         try:
@@ -137,13 +143,8 @@ async def initialize_userbot(user_id): # this ensure the single startup .. even 
             await userbot.start()
             return userbot
         except Exception:
-            await app.send_message(user_id, "Login Expired re do login")
             return None
-    else:
-        if DEFAULT_SESSION:
-            return userrbot
-        else:
-            return None
+    return None
 
 
 async def is_normal_tg_link(link: str) -> bool:
@@ -152,18 +153,15 @@ async def is_normal_tg_link(link: str) -> bool:
     return 't.me/' in link and not any(x in link for x in special_identifiers)
     
 async def process_special_links(userbot, user_id, msg, link):
-    if userbot is None:
-        return await msg.edit_text("Try logging in to the bot and try again.")
+    """Handle special Telegram links."""
     if 't.me/+' in link:
         result = await userbot_join(userbot, link)
         await msg.edit_text(result)
-        return
-    special_patterns = ['t.me/c/', 't.me/b/', '/s/', 'tg://openmessage']
-    if any(sub in link for sub in special_patterns):
+    elif any(sub in link for sub in ['t.me/c/', 't.me/b/', '/s/', 'tg://openmessage']):
         await process_and_upload_link(userbot, user_id, msg.id, link, 0, msg)
         await set_interval(user_id, interval_minutes=45)
-        return
-    await msg.edit_text("Invalid link...")
+    else:
+        await msg.edit_text("Invalid link format.")
 
 
 @app.on_message(filters.command("batch") & filters.private)
@@ -182,7 +180,7 @@ async def batch_link(_, message):
 
     freecheck = await chk_user(message, user_id)
     if freecheck == 1 and FREEMIUM_LIMIT == 0 and user_id not in OWNER_ID and not await is_user_verified(user_id):
-        await message.reply("Freemium service is currently not available. Upgrade to premium for access.")
+        await message.reply("Free service is currently not available. Upgrade to premium for access.")
         return
 
     max_batch_size = FREEMIUM_LIMIT if freecheck == 1 else PREMIUM_LIMIT
@@ -223,11 +221,11 @@ async def batch_link(_, message):
         await message.reply(response_message)
         return
         
-    join_button = InlineKeyboardButton("Join Channel", url="https://t.me/team_spy_pro")
+    join_button = InlineKeyboardButton("Join Channel", url="https://t.me/save_restricted_botss")
     keyboard = InlineKeyboardMarkup([[join_button]])
     pin_msg = await app.send_message(
         user_id,
-        f"Batch process started ⚡\nProcessing: 0/{cl}\n\n**Powered by Team SPY**",
+        f"Batch process started ⚡\nProcessing: 0/{cl}\n\n**Powered by Shimperd**",
         reply_markup=keyboard
     )
     await pin_msg.pin(both_sides=True)
@@ -235,7 +233,6 @@ async def batch_link(_, message):
     users_loop[user_id] = True
     try:
         normal_links_handled = False
-        if DEFAULT_
         userbot = await initialize_userbot(user_id)
         # Handle normal links first
         for i in range(cs, cs + cl):
@@ -247,14 +244,14 @@ async def batch_link(_, message):
                     msg = await app.send_message(message.chat.id, f"Processing...")
                     await process_and_upload_link(userbot, user_id, msg.id, link, 0, message)
                     await pin_msg.edit_text(
-                        f"Batch process started ⚡\nProcessing: {i - cs + 1}/{cl}\n\n**__Powered by Team SPY__**",
+                        f"Batch process started ⚡\nProcessing: {i - cs + 1}/{cl}\n\n**__Powered by Shimperd__**",
                         reply_markup=keyboard
                     )
                     normal_links_handled = True
         if normal_links_handled:
             await set_interval(user_id, interval_minutes=300)
             await pin_msg.edit_text(
-                f"Batch completed successfully for {cl} messages 🎉\n\n**__Powered by Team SPY__**",
+                f"Batch completed successfully for {cl} messages 🎉\n\n**__Powered by Shimperd__**",
                 reply_markup=keyboard
             )
             await app.send_message(message.chat.id, "Batch completed successfully! 🎉")
@@ -273,13 +270,13 @@ async def batch_link(_, message):
                     msg = await app.send_message(message.chat.id, f"Processing...")
                     await process_and_upload_link(userbot, user_id, msg.id, link, 0, message)
                     await pin_msg.edit_text(
-                        f"Batch process started ⚡\nProcessing: {i - cs + 1}/{cl}\n\n**__Powered by Team SPY__**",
+                        f"Batch process started ⚡\nProcessing: {i - cs + 1}/{cl}\n\n**__Powered by Shimperd__**",
                         reply_markup=keyboard
                     )
 
         await set_interval(user_id, interval_minutes=300)
         await pin_msg.edit_text(
-            f"Batch completed successfully for {cl} messages 🎉\n\n**__Powered by Team SPY__**",
+            f"Batch completed successfully for {cl} messages 🎉\n\n**__Powered by Shimperd__**",
             reply_markup=keyboard
         )
         await app.send_message(message.chat.id, "Batch completed successfully! 🎉")
